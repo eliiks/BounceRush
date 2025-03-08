@@ -2,10 +2,6 @@
 Welcome to Bounce Rush game!\
 Version : 1.0
 
-## Download
-(Download .exe here)[]\
-Also available on (web browser)[]
-
 ## Rules
 Bounce Rush is a two-player game set on an ice platform.
 Each player are positioned on opposite sides.
