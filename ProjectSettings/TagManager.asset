@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - Disc
+  - Wall
   layers:
   - Default
   - TransparentFX

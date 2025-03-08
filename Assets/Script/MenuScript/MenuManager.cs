@@ -1,25 +1,41 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+// <summary>
+/// Manages the menu of the game
+/// @author Eliiks
+/// </summary>
 public class MenuManager : MonoBehaviour
 {
-    public GameObject startMenu;
-    private GameObject currentSubMenu;
+    /// <summary>
+    /// The UI panel of the main menu
+    /// </summary>
+    public GameObject mainMenu;
 
-    // Start is called before the first frame update
+    /// <summary>
+    /// The UI panel of the current menu (main menu by default)
+    /// </summary>
+    private GameObject currentMenu;
+
     void Awake()
     {
-        currentSubMenu = startMenu;
+        currentMenu = mainMenu;
     }
 
+    /// <summary>
+    /// Change scene and launch the game
+    /// </summary>
     public void LaunchGame(){
         SceneManager.LoadScene("GameScene");
     }
 
-    public void ShowSubMenu(GameObject subMenu){
-        currentSubMenu.SetActive(false);
-        subMenu.SetActive(true);
-        currentSubMenu = subMenu;
+    /// <summary>
+    /// Change the current menu by another one
+    /// </summary>
+    /// <param name="menu">The UI menu to show</param>
+    public void ShowMenu(GameObject newMenu){
+        currentMenu.SetActive(false);
+        newMenu.SetActive(true);
+        currentMenu = newMenu;
     }
-
 }

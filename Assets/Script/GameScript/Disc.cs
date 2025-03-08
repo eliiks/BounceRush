@@ -1,111 +1,169 @@
 using UnityEngine;
 
+/// <summary>
+/// Class handling behavior of  dics in the game
+/// </summary>
 public class Disc : MonoBehaviour
 {
+    // DISC PROPERTIES
+
+    /// <summary>
+    /// The speed of the disc
+    /// </summary>
+    [Tooltip("The speed of the disc")] public float speed = 1000.0f;
     
+    /// <summary>
+    /// The rigidbody of the disc
+    /// </summary>
+    private Rigidbody _rb;
 
-    // Properties
-    [Tooltip("The speed of the disc")]
-    public float speed = 1000.0f;
-    private GameManager gm;
-    private Rigidbody rb;
+    /// <summary>
+    /// The game manager instance
+    /// </summary>
+    private GameManager _gm;
     
-    // Interaction
-    [Tooltip("Tells if the disc has been grabbed by the player")]
-    private bool grabbed = false;
+    /// <summary>
+    /// The audio manager instance
+    /// </summary>
+    private AudioManager _am;
 
-    [Tooltip("Tells if the disc has been pushed by the player")]
-    private bool pushed = false;
+    /// <summary>
+    /// True if the disc is in player side, false otherwise.
+    /// </summary>
+    private bool _inPlayerSide = true;
 
-    public bool Freeze { get; internal set; }
+    // PLAYER INTERACTION
 
-    public bool ASide = true;
+    /// <summary>
+    /// Tells if the disc can be moved or not by players
+    /// </summary>
+    [Tooltip("Tells if the disc can be moved or not by players")] public bool Freeze;
 
-    public RectTransform DragArrow;
+    /// <summary>
+    /// Tells if the disc has been grabbed by the player
+    /// </summary>
+    [Tooltip("Tells if the disc has been grabbed by the player")] private bool _grabbed = false;
 
-    // Start is called before the first frame update
-    void Start()
+    /// <summary>
+    /// Tells if the disc has been pushed by the player
+    /// </summary>
+    [Tooltip("Tells if the disc has been pushed by the player")] private bool _pushed = false;
+
+    //BOT INTERACTION
+    
+    /// <summary>
+    /// Targeted position of the bot
+    /// </summary>
+    private Vector3 _botTargetPosition;
+
+    // UI TARGET DIRECTION ARROW
+
+    /// <summary>
+    /// The canvas of the arrow under the disc
+    /// </summary>
+    [Tooltip("The canvas of the arrow under the disc")] public RectTransform DirectionArrow;
+
+    /// <summary>
+    /// The panel transform of the arrow's main line
+    /// </summary>
+    [Tooltip("The panel transform of the arrow's main line")] public Transform DirectionArrowLine;
+
+    void Awake()
     {
-        rb = GetComponent<Rigidbody>();
-        gm = FindAnyObjectByType<GameManager>();
+        _rb = GetComponent<Rigidbody>();
+        _gm = FindAnyObjectByType<GameManager>();
+        _am = FindAnyObjectByType<AudioManager>();
 
-        if((transform.position.z - (transform.localScale.z / 2)) > gm.TriggerBSide.position.z){
-            ASide = false;
-        }
+        // Detect if disc is in player side or not
+        _inPlayerSide = _gm.IsDiscInPlayerSide(transform.position.z, transform.localScale.z);
     }
 
     void OnMouseDown()
-    {
-        if(gm.DebugPushFromOppositeSide || ASide){
+    {   
+        // If disc is in player side, it can be grabbed by the player 
+        if(_gm.DebugPushFromOppositeSide || _inPlayerSide){
             GrabDisc();
         }
     }
 
     void OnMouseUp()
     {
-        if(grabbed){
+        // When user release left mouse button, if the disc has been grabbed, the disc is ready to be pushed in the targeted direction
+        if(_grabbed){
             PushDisc();
         }
     }
 
     void Update()
     {
-        if(!ASide && (transform.position.z - (transform.localScale.z / 2)) < gm.TriggerASide.position.z){
-            gm.AddDiscInSideA(this);
-            ASide = true;
+        // Update side properties
+        bool wasInPlayerSide = _inPlayerSide;
+        bool nowInPlayerSide = _gm.IsDiscInPlayerSide(transform.position.z, transform.localScale.z);
+
+        if(!wasInPlayerSide && nowInPlayerSide){
+            _gm.AddDiscInPlayerSide(this);
+            _inPlayerSide = true;
         }
 
-        if(ASide && (transform.position.z - (transform.localScale.z / 2)) > gm.TriggerBSide.position.z){
-            gm.AddDiscInSideB(this);
-            ASide = false;
+        if(wasInPlayerSide && !nowInPlayerSide){
+            _gm.AddDiscInBotSide(this);
+            _inPlayerSide = false;
         }
     }
 
     void FixedUpdate(){
+        // Push the disc if possible
         if(!Freeze){
-            if(ASide){
-                Vector3 direction = transform.position - gm.MousePosition;
+            if(_inPlayerSide){
+                // - Handles player interactions
 
-                if(grabbed){
-                    //Debug.DrawRay(gm.MousePosition, direction, Color.red);
+                // Compute the direction (that the disc will follow) according to the last mouse position
+                Vector3 direction = transform.position - _gm.MousePosition;
 
+                // If grabbed, display the arrow under the disc to help the user for choosing a direction
+                if(_grabbed){
+                    // Compute the arrow rotation according to the given input direction
                     Vector3 targetArrowRotation = Quaternion.LookRotation(direction, Vector3.up).eulerAngles;
-                    targetArrowRotation.x = DragArrow.rotation.eulerAngles.x;
-                    DragArrow.rotation = Quaternion.Euler(targetArrowRotation);
+                    targetArrowRotation.x = DirectionArrow.rotation.eulerAngles.x; // the x axis rotation value must be locked
+                    DirectionArrow.rotation = Quaternion.Euler(targetArrowRotation); // rotate the arrow
 
-                    DragArrow.sizeDelta = new Vector2(DragArrow.sizeDelta.x, direction.magnitude);
+                    // Compute the length of the middle line of the arrow, in order to always follow direction magnitude
+                    DirectionArrowLine.localScale = new Vector3(DirectionArrowLine.localScale.x, direction.magnitude, DirectionArrowLine.localScale.z);
+                    
+                    DirectionArrow.gameObject.SetActive(true);
                 }else{
-                    DragArrow.sizeDelta = new Vector2(DragArrow.sizeDelta.x, 0.0f);
+                    DirectionArrow.gameObject.SetActive(false);
                 }
 
-                if(!grabbed && pushed){
-                    rb.AddForce(speed * direction.normalized);
-                    pushed = false;
+                if(!_grabbed && _pushed){
+                    // The user release the left mouse button, so the disc is ready to be pushed in the targeted direction
+                    _rb.AddForce(speed * direction.normalized);
+                    _am.Play("DiscPushed");
+                    _pushed = false;
                 }
             }else{
-                if(!grabbed && pushed){
-                    Vector3 direction = BotTarget - transform.position;
-                    rb.AddForce(speed * direction.normalized);
-                    pushed = false;
+                // - Handles bot interactions
+                if(!_grabbed && _pushed){
+                    Vector3 direction = _botTargetPosition - transform.position;
+                    _rb.AddForce(speed * direction.normalized);
+                    _pushed = false;
                 }
             }
         }
     }
 
-
+    // PLAYER FUNCTIONS
     public void GrabDisc(){
-        grabbed = true;
+        _grabbed = true;
     }
 
     public void PushDisc(){
-        grabbed = false;
-        pushed = true;
+        _grabbed = false;
+        _pushed = true;
     }
 
-
-    //Bot
-    public Vector3 BotTarget;
+    // BOT FUNCTIONS
     public void SetBotTarget(Vector3 position){
-        BotTarget = position;
+        _botTargetPosition = position;
     }
 }

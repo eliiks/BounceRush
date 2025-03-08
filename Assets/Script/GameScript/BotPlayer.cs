@@ -2,37 +2,58 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
-
-public class BotPlayer : MonoBehaviour{
-    public List<Disc> discsInPlayerSide = new();
+/// <summary>
+/// Class handling bot behavior on the game
+/// </summary>
+public class BotPlayer : MonoBehaviour {
+    /// <summary>
+    /// The disc objects list in the bot side
+    /// </summary>
+    private List<Disc> _discsInBotSide = new();
 
     void Start()
     {
         StartCoroutine(PushDiscsFrequently());
     }
 
+    /// <summary>
+    /// Every 3 seconds, the bot push a random disc in his side
+    /// </summary>
     IEnumerator PushDiscsFrequently()
     {
         yield return new WaitForSeconds(3);
-        PushRandomDisc();
-        StartCoroutine(PushDiscsFrequently());
+        if(_discsInBotSide.Count == 0){
+            // Stop the interaction loop
+            yield return null;
+        }else{
+            PushRandomDisc();
+            StartCoroutine(PushDiscsFrequently());
+        }
     }
 
+    /// <summary>
+    /// Grab and push a random disc in bot side, always in the same direction
+    /// </summary>
     public void PushRandomDisc(){
-        if(discsInPlayerSide.Count == 0){
-            return;
-        }
-        Disc disc = discsInPlayerSide[Random.Range(0, discsInPlayerSide.Count)];
+        Disc disc = _discsInBotSide[Random.Range(0, _discsInBotSide.Count)];
         disc.GrabDisc();
-        disc.SetBotTarget(new Vector3(1,0.7f,1));
+        disc.SetBotTarget(new Vector3(1.0f, 0.7f, 1.0f));
         disc.PushDisc();
     }
 
+    /// <summary>
+    /// Add a disc positioned in the bot side
+    /// </summary>
+    /// <param name="disc">The new disc in the bot side</param>
     public void AddDisc(Disc disc){
-        discsInPlayerSide.Add(disc);
+        _discsInBotSide.Add(disc);
     }
 
+    /// <summary>
+    /// Remove a disc that is no more positioned in the bot side
+    /// </summary>
+    /// <param name="disc">The disc that leaved the bot side</param>
     public void RemoveDisc(Disc disc){
-        discsInPlayerSide.Remove(disc);
+        _discsInBotSide.Remove(disc);
     }
 }
