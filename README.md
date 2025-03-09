@@ -2,6 +2,10 @@
 Welcome to Bounce Rush game!\
 Version : 1.0
 
+## Download and play
+PC (Windows, Mac and Linux) version can be downloaded [here](https://github.com/eliiks/BounceRush/releases/tag/v1.0)\
+Also available on web browser [here](https://eliiks.github.io/BounceRush/)
+
 ## Rules
 Bounce Rush is a two-player game set on an ice platform.
 Each player are positioned on opposite sides.
